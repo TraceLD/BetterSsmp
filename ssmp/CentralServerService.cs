@@ -31,7 +31,6 @@ namespace Ssmp
             _logger = logger;
         }
 
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var listener = new TcpListener(_ipAddress, _port);
