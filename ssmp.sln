@@ -5,7 +5,9 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "consoleexample", "consoleexample\consoleexample.csproj", "{47064458-33C2-4A63-9B97-03FBF7620B63}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ssmp", "ssmp\ssmp.csproj", "{F6FCC08F-A907-4783-9246-3DC9AB689F54}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmp", "Ssmp\Ssmp.csproj", "{F6FCC08F-A907-4783-9246-3DC9AB689F54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmp.Tests", "Ssmp.Tests\Ssmp.Tests.csproj", "{D7002348-3907-4784-9BB0-3B3CA1D4C29E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,5 +46,17 @@ Global
 		{F6FCC08F-A907-4783-9246-3DC9AB689F54}.Release|x64.Build.0 = Release|Any CPU
 		{F6FCC08F-A907-4783-9246-3DC9AB689F54}.Release|x86.ActiveCfg = Release|Any CPU
 		{F6FCC08F-A907-4783-9246-3DC9AB689F54}.Release|x86.Build.0 = Release|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Debug|x64.Build.0 = Debug|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Debug|x86.Build.0 = Debug|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Release|x64.ActiveCfg = Release|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Release|x64.Build.0 = Release|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Release|x86.ActiveCfg = Release|Any CPU
+		{D7002348-3907-4784-9BB0-3B3CA1D4C29E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
