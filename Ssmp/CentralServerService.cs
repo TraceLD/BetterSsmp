@@ -1,109 +1,64 @@
-﻿using System;
-using System.Buffers.Binary;
+﻿using System.Collections.Immutable;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static Ssmp.ConnectedClient;
 
 namespace Ssmp
 {
     public class CentralServerService : BackgroundService
     {
         private readonly ILogger<CentralServerService> _logger;
+        private Handler _handler;
+        private volatile ImmutableList<ConnectedClient> _connectedClients;
+        private int _messageQueueLimit;
         private readonly IPAddress _ipAddress;
         private readonly int _port;
 
-        public CentralServerService(ILogger<CentralServerService> logger, int port)
+        public CentralServerService(ILogger<CentralServerService> logger, Handler handler, int messageQueueLimit, IPAddress ipAddress, int port)
         {
             _logger = logger;
-            _ipAddress = IPAddress.Loopback;
-            _port = port;
-        }
-
-        public CentralServerService(ILogger<CentralServerService> logger, IPAddress ipAddress, int port)
-        {
+            _handler = handler;
+            _messageQueueLimit = messageQueueLimit;
             _ipAddress = ipAddress;
             _port = port;
-            _logger = logger;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken) //TODO: Don't ignore the stopping token
         {
-            var listener = new TcpListener(_ipAddress, _port);
-            listener.Start();
             var tasks = new List<Task>();
+
+            var listener = new TcpListener(_ipAddress, _port);
             
-            while (!stoppingToken.IsCancellationRequested)
+            while(!stoppingToken.IsCancellationRequested)
             {
-                stoppingToken.ThrowIfCancellationRequested();
-
                 tasks.Add(listener.AcceptTcpClientAsync());
-
                 var completedTask = await Task.WhenAny(tasks);
-                
-                if (completedTask is Task<TcpClient> tcpClientTask)
+                tasks.Remove(completedTask);
+                if(completedTask is Task<TcpClient> newConnection)
                 {
-                    var client = await tcpClientTask;
-                    tasks.Add(ProcessAsync(client));
+                    var client = ConnectedClient.Adopt(_handler, await newConnection, _messageQueueLimit);
+                    _connectedClients = _connectedClients.Add(client);
+                    tasks.Add(client.Spin());
+                }
+                else if(completedTask is Task<ConnectedClient> endedClient)
+                {
+                    _connectedClients = _connectedClients.Remove(await endedClient);
                 }
                 else
                 {
                     await completedTask;
                 }
-
-                tasks.Remove(completedTask);
             }
         }
 
-        private async Task ProcessAsync(TcpClient tcpClient)
-        {
-            var clientEndPoint = tcpClient.Client.RemoteEndPoint;
-            _logger.LogInformation($"Received connection request from {clientEndPoint}");
-
-            try
-            {
-                await using var networkStream = tcpClient.GetStream();
-
-                while (true)
-                {
-                    var buffer = new byte[1024];
-                    var requestLength = await networkStream.ReadAsync(buffer);
-                    var requestBytes = buffer.ToArray();
-
-                    if (requestBytes.Any())
-                    {
-                        // do something with the byte array;
-                        
-                        _logger.LogInformation($"Received a message from {clientEndPoint}");
-                        
-                        // send response;
-                        var lengthArrayBuffer = new byte[4];
-                        var msgBytes = new byte[1024]; // this would be proto message bytes;
-
-                        BinaryPrimitives.WriteInt32BigEndian(lengthArrayBuffer.AsSpan(), msgBytes.Length);
-                        await networkStream.WriteAsync(lengthArrayBuffer);
-                        await networkStream.WriteAsync(msgBytes);
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"Closed connection with {clientEndPoint}");
-                    }
-                    
-                    _logger.LogInformation($"Closed connection with {clientEndPoint}");
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("Error in the central server.", e);
-                if (tcpClient.Connected)
-                {
-                    tcpClient.Close();
-                }
-            }
+        public ImmutableList<ConnectedClient> GetConnectedClients(){
+            return _connectedClients;
         }
+
     }
 }

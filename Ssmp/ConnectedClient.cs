@@ -41,9 +41,10 @@ namespace Ssmp
             _reader = _sendQueue.Reader;
         }
 
-        public async Task Spin()
+        public async Task<ConnectedClient> Spin()
         {
             await Task.WhenAll(SendPendingMessages(), ReceiveMessages());
+            return this;
         }
     
         public async void SendMessage(byte[] message)
