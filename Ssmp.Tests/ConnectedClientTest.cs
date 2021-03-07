@@ -19,7 +19,7 @@ namespace Ssmp.Tests
             listener.Start();
 
             //send a message
-            var externalClient = ConnectedClient.Connect((a, b) => {}, "localhost", 16384, 10);
+            var externalClient = ConnectedClient.Connect((a, b) => Task.CompletedTask, "localhost", 16384, 10);
             externalClient.SendMessage(new byte[]{10, 20, 30});
 
             //setup recieving
@@ -32,6 +32,7 @@ namespace Ssmp.Tests
                 }else{
                     throw new Exception("Message contents don't match.");
                 }
+                return Task.CompletedTask;
             },
             client, 10);
             
@@ -51,7 +52,7 @@ namespace Ssmp.Tests
             listener.Start();
 
             //send a message
-            var externalClient = ConnectedClient.Connect((a, b) => {}, "localhost", 16385, MESSAGE_COUNT*2);
+            var externalClient = ConnectedClient.Connect((a, b) => Task.CompletedTask, "localhost", 16385, MESSAGE_COUNT*2);
             for(var i=0;i<MESSAGE_COUNT;++i){
                 var message = new byte[4];
                 BinaryPrimitives.WriteInt32LittleEndian(message, i);
@@ -65,6 +66,7 @@ namespace Ssmp.Tests
             {
                 var id = BinaryPrimitives.ReadInt32LittleEndian(message);
                 wasRecieved[id] = true;
+                return Task.CompletedTask;
             },
             client, MESSAGE_COUNT*2);
             

@@ -10,7 +10,7 @@ namespace Ssmp
     {
         private readonly TcpClient _tcpClient;
         private readonly NetworkStream _stream;
-        public delegate void Handler(ConnectedClient client, byte[] message);
+        public delegate Task Handler(ConnectedClient client, byte[] message);
         private readonly Handler _handler;
         private readonly Channel<byte[]> _sendQueue;
         private readonly ChannelWriter<byte[]> _writer;
