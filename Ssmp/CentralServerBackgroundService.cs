@@ -1,11 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using static Ssmp.ConnectedClient;
 
 namespace Ssmp
 {
@@ -24,6 +19,10 @@ namespace Ssmp
             {
                await _centralServerService.SpinOnce();
             }
+        }
+
+        public async Task LaunchForUnitTesting(CancellationToken token){
+            await ExecuteAsync(token);
         }
 
     }
