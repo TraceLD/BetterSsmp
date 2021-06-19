@@ -10,9 +10,7 @@ namespace Ssmp
     {
         private readonly TcpClient _tcpClient;
         private readonly NetworkStream _stream;
-        public delegate Task Handler(ConnectedClient client, byte[] message);
         private readonly Handler _handler;
-        private readonly Channel<byte[]> _sendQueue;
         private readonly ChannelWriter<byte[]> _writer;
         private readonly ChannelReader<byte[]> _reader;
 
@@ -31,28 +29,31 @@ namespace Ssmp
             _handler = handler;
             _tcpClient = tcpClient;
             _stream = _tcpClient.GetStream();
-            _sendQueue = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(messageQueueLimit)
+            Channel<byte[]> sendQueue = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(messageQueueLimit)
             {
                 AllowSynchronousContinuations = false,
                 SingleReader = true,
                 SingleWriter = true
             });
-            _writer = _sendQueue.Writer;
-            _reader = _sendQueue.Reader;
+            _writer = sendQueue.Writer;
+            _reader = sendQueue.Reader;
         }
+        
+        public delegate Task Handler(ConnectedClient client, byte[] message);
 
         public async Task<ConnectedClient> Spin()
         {
             await Task.WhenAll(SendPendingMessages(), ReceiveMessages());
             return this;
         }
-    
+
         public async void SendMessage(byte[] message)
         {
             await _writer.WriteAsync(message);
         }
 
-        public void Dispose(){
+        public void Dispose()
+        {
             _stream?.Dispose();
             _tcpClient?.Dispose();
         }
@@ -61,7 +62,7 @@ namespace Ssmp
         {
             var lengthBuffer = new byte[4];
 
-            while(_tcpClient.Connected)
+            while (_tcpClient.Connected)
             {
                 var message = await _reader.ReadAsync();
                 BinaryPrimitives.WriteInt32BigEndian(lengthBuffer, message.Length);
@@ -74,21 +75,22 @@ namespace Ssmp
         {
             var lengthBuffer = new byte[4];
 
-            while(_tcpClient.Connected)
+            while (_tcpClient.Connected)
             {
                 //read length
                 await _stream.ReadNBytes(4, lengthBuffer);
                 var length = BinaryPrimitives.ReadInt32BigEndian(lengthBuffer);
 
                 //allocate buffer & read message
-                var buffer = new byte[length]; //new buffer is allocated so ownership of the buffer can be passed off of this thread
+                var buffer =
+                    new byte[length]; //new buffer is allocated so ownership of the buffer can be passed off of this thread
                 await _stream.ReadNBytes(length, buffer);
 
                 //handle message
-                Task.Run(() => _handler(this, buffer)); //fire & forget the handling so that the handler can't mess up our Glorious Threading
+                Task.Run(() =>
+                    _handler(this,
+                        buffer)); //fire & forget the handling so that the handler can't mess up our Glorious Threading
             }
         }
-
     }
-
 }
