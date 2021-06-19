@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Ssmp
 {
-    public static class NetworkStreamExtension
+    public static class NetworkStreamExtensions
     {
         public static async Task ReadNBytes(this NetworkStream ns, int n, byte[] buffer)
         {
