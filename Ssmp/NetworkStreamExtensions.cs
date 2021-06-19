@@ -13,7 +13,7 @@ namespace Ssmp
             {
                 var bytes = await ns.ReadAsync(buffer, index, n-index);
 
-                if (bytes <= 0) 
+                if (bytes <= 0)
                 {
                     break;
                 }
