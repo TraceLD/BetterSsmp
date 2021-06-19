@@ -73,12 +73,25 @@ namespace Ssmp
             while (_tcpClient.Connected)
             {
                 //read length
-                await _stream.ReadNBytes(4, lengthBuffer);
-                var length = BinaryPrimitives.ReadInt32BigEndian(lengthBuffer);
+                var readLengthBytes = await _stream.ReadBufferLength(lengthBuffer);
 
+                //return if error, should automatically close the connection;
+                if (readLengthBytes != lengthBuffer.Length)
+                {
+                    return;
+                }
+                
+                var length = BinaryPrimitives.ReadInt32BigEndian(lengthBuffer);
+                
                 //allocate buffer & read message
                 var buffer = new byte[length]; //new buffer is allocated so ownership of the buffer can be passed off of this thread
-                await _stream.ReadNBytes(length, buffer);
+                var readBytes = await _stream.ReadBufferLength(buffer);
+
+                //return if error, should automatically close the connection;
+                if (readBytes != buffer.Length)
+                {
+                    return;
+                }
 
                 //handle message
                 await _handler.Handle(this, buffer);

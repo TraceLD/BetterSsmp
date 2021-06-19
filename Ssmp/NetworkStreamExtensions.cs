@@ -5,13 +5,13 @@ namespace Ssmp
 {
     public static class NetworkStreamExtensions
     {
-        public static async Task<int> ReadNBytes(this NetworkStream ns, int n, byte[] buffer)
+        public static async Task<int> ReadBufferLength(this NetworkStream ns, byte[] buffer)
         {
             var index = 0;
 
-            while(index < n)
+            while(index < buffer.Length)
             {
-                var bytes = await ns.ReadAsync(buffer, index, n-index);
+                var bytes = await ns.ReadAsync(buffer, index, buffer.Length - index);
 
                 if (bytes <= 0)
                 {
