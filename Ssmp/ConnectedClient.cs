@@ -10,36 +10,32 @@ namespace Ssmp
     {
         private readonly TcpClient _tcpClient;
         private readonly NetworkStream _stream;
-        private readonly Handler _handler;
+        private readonly ISsmpHandler _handler;
         private readonly ChannelWriter<byte[]> _writer;
         private readonly ChannelReader<byte[]> _reader;
 
-        public static ConnectedClient Connect(Handler handler, string ip, Int32 port, int messageQueueLimit)
-        {
-            return new ConnectedClient(handler, new TcpClient(ip, port), messageQueueLimit);
-        }
+        public static ConnectedClient Connect(ISsmpHandler handler, string ip, int port, int messageQueueLimit) => 
+            new(handler, new TcpClient(ip, port), messageQueueLimit);
 
-        public static ConnectedClient Adopt(Handler handler, TcpClient tcpClient, int messageQueueLimit)
-        {
-            return new ConnectedClient(handler, tcpClient, messageQueueLimit);
-        }
+        public static ConnectedClient Adopt(ISsmpHandler handler, TcpClient tcpClient, int messageQueueLimit) => 
+            new(handler, tcpClient, messageQueueLimit);
 
-        internal ConnectedClient(Handler handler, TcpClient tcpClient, int messageQueueLimit)
+        private ConnectedClient(ISsmpHandler handler, TcpClient tcpClient, int messageQueueLimit)
         {
-            _handler = handler;
             _tcpClient = tcpClient;
+            _handler = handler;
             _stream = _tcpClient.GetStream();
-            Channel<byte[]> sendQueue = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(messageQueueLimit)
+            
+            var sendQueue = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(messageQueueLimit)
             {
                 AllowSynchronousContinuations = false,
                 SingleReader = true,
                 SingleWriter = true
             });
+            
             _writer = sendQueue.Writer;
             _reader = sendQueue.Reader;
         }
-        
-        public delegate Task Handler(ConnectedClient client, byte[] message);
 
         public async Task<ConnectedClient> Spin()
         {
@@ -47,10 +43,8 @@ namespace Ssmp
             return this;
         }
 
-        public async void SendMessage(byte[] message)
-        {
+        public async void SendMessage(byte[] message) => 
             await _writer.WriteAsync(message);
-        }
 
         public void Dispose()
         {
@@ -65,9 +59,10 @@ namespace Ssmp
             while (_tcpClient.Connected)
             {
                 var message = await _reader.ReadAsync();
+                
                 BinaryPrimitives.WriteInt32BigEndian(lengthBuffer, message.Length);
-                await _stream.WriteAsync(lengthBuffer, 0, lengthBuffer.Length);
-                await _stream.WriteAsync(message, 0, message.Length);
+                await _stream.WriteAsync(lengthBuffer);
+                await _stream.WriteAsync(message);
             }
         }
 
@@ -82,14 +77,11 @@ namespace Ssmp
                 var length = BinaryPrimitives.ReadInt32BigEndian(lengthBuffer);
 
                 //allocate buffer & read message
-                var buffer =
-                    new byte[length]; //new buffer is allocated so ownership of the buffer can be passed off of this thread
+                var buffer = new byte[length]; //new buffer is allocated so ownership of the buffer can be passed off of this thread
                 await _stream.ReadNBytes(length, buffer);
 
                 //handle message
-                Task.Run(() =>
-                    _handler(this,
-                        buffer)); //fire & forget the handling so that the handler can't mess up our Glorious Threading
+                await _handler.Handle(this, buffer);
             }
         }
     }

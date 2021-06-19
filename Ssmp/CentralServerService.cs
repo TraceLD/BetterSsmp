@@ -3,27 +3,28 @@ using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-
-using static Ssmp.ConnectedClient;
+using Microsoft.Extensions.Options;
 
 namespace Ssmp
 {
     public class CentralServerService
     {
-        private readonly Handler _handler;
         private readonly int _messageQueueLimit;
         private readonly List<Task> _tasks = new();
         private readonly TcpListener _listener;
+        private readonly ISsmpHandler _handler;
 
         private volatile ImmutableList<ConnectedClient> _connectedClients = ImmutableList<ConnectedClient>.Empty;
 
         public ImmutableList<ConnectedClient> ConnectedClients => _connectedClients;
 
-        public CentralServerService(Handler handler, int messageQueueLimit, IPAddress ipAddress, int port)
+        public CentralServerService(IOptions<SsmpOptions> options, ISsmpHandler handler)
         {
+            var ssmpOptions = options.Value;
+            
             _handler = handler;
-            _messageQueueLimit = messageQueueLimit;
-            _listener = new TcpListener(ipAddress, port);
+            _messageQueueLimit = ssmpOptions.Port;
+            _listener = new TcpListener(IPAddress.Parse(ssmpOptions.IpAddress), ssmpOptions.Port);
             
             _listener.Start();
         }
