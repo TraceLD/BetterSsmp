@@ -10,27 +10,21 @@ namespace Ssmp{
 
     public class CentralServerService
     {
-        private Handler _handler;
-        internal volatile ImmutableList<ConnectedClient> _connectedClients = ImmutableList<ConnectedClient>.Empty;
-        private int _messageQueueLimit;
-        private readonly IPAddress _ipAddress;
-        private readonly int _port;
-        private List<Task> _tasks = new List<Task>();
-        private TcpListener _listener;
+        private readonly Handler _handler;
+        private readonly int _messageQueueLimit;
+        private readonly List<Task> _tasks = new List<Task>();
+        private readonly TcpListener _listener;
+        
+        private volatile ImmutableList<ConnectedClient> _connectedClients = ImmutableList<ConnectedClient>.Empty;
+        
+        public ImmutableList<ConnectedClient> ConnectedClients => _connectedClients;
 
         public CentralServerService(Handler handler, int messageQueueLimit, IPAddress ipAddress, int port)
         {
             _handler = handler;
             _messageQueueLimit = messageQueueLimit;
-            _ipAddress = ipAddress;
-            _port = port;
-            _listener = new TcpListener(_ipAddress, _port);
+            _listener = new TcpListener(ipAddress, port);
             _listener.Start();
-        }
-
-        public ImmutableList<ConnectedClient> GetConnectedClients()
-        {
-            return _connectedClients;
         }
 
         internal async Task SpinOnce(){
