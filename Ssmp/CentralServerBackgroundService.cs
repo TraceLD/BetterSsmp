@@ -6,24 +6,24 @@ namespace Ssmp
 {
     public class CentralServerBackgroundService : BackgroundService
     {
-        private CentralServerService _centralServerService;
+        private readonly CentralServerService _centralServerService;
+
         public CentralServerBackgroundService(CentralServerService centralServerService)
         {
             _centralServerService = centralServerService;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken) //TODO: Don't ignore the stopping token
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            
-            while(!stoppingToken.IsCancellationRequested)
+            while (!stoppingToken.IsCancellationRequested)
             {
-               await _centralServerService.SpinOnce();
+                await _centralServerService.SpinOnce();
             }
         }
 
-        public async Task LaunchForUnitTesting(CancellationToken token){
+        public async Task LaunchForUnitTesting(CancellationToken token)
+        {
             await ExecuteAsync(token);
         }
-
     }
 }

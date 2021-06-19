@@ -5,78 +5,97 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System;
 using Xunit;
-using Ssmp;
 
 namespace Ssmp.Tests
 {
     public class ConnectedClientTest
     {
+        private class EmptyHandler : ISsmpHandler
+        {
+            public ValueTask Handle(ConnectedClient client, byte[] message)
+            {
+                return ValueTask.CompletedTask;
+            }
+        }
+
+        private class TestSingleMessageInternalClientHandler : ISsmpHandler
+        {
+            public ValueTask Handle(ConnectedClient client, byte[] message)
+            {
+                if (!message.SequenceEqual(new byte[] {10, 20, 30}))
+                {
+                    throw new Exception("Message contents don't match.");
+                }
+
+                return ValueTask.CompletedTask;
+            }
+        }
+
+        private class TestManyMessagesInternalClientHandler : ISsmpHandler
+        {
+            public ValueTask Handle(ConnectedClient client, byte[] message)
+            {
+                BinaryPrimitives.ReadInt32LittleEndian(message);
+                return ValueTask.CompletedTask;
+            }
+        }
+
         [Fact]
         public async Task TestSingleMessage()
         {
-            //setup server
-            var listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 16384);
-            listener.Start();
-
-            //send a message
-            var externalClient = ConnectedClient.Connect((a, b) => Task.CompletedTask, "localhost", 16384, 10);
-            externalClient.SendMessage(new byte[]{10, 20, 30});
-
-            //setup recieving
-            var isReceived = false;
-            var client = listener.AcceptTcpClient();
-            var internalClient = ConnectedClient.Adopt((client, message) =>
+            var exception = await Record.ExceptionAsync(async () =>
             {
-                if(Enumerable.SequenceEqual(message, new byte[]{10, 20, 30})){
-                    isReceived = true;
-                }else{
-                    throw new Exception("Message contents don't match.");
-                }
-                return Task.CompletedTask;
-            },
-            client, 10);
-            
-            //let the clients do their thing for an absurdly long period of time
-            await Task.WhenAny(internalClient.Spin(), externalClient.Spin(), Task.Delay(10));
+                //setup server
+                var listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 16384);
+                listener.Start();
 
-            Assert.True(isReceived, "Failed to recieve message.");
+                //send a message
+                var externalClient = ConnectedClient.Connect(new EmptyHandler(), "localhost", 16384, 10);
+                externalClient.SendMessage(new byte[] {10, 20, 30});
+
+                //setup receiving
+                var client = await listener.AcceptTcpClientAsync();
+                var internalClient = ConnectedClient.Adopt(new TestSingleMessageInternalClientHandler(), client, 10);
+
+                //let the clients do their thing for an absurdly long period of time
+                await Task.WhenAny(internalClient.Spin(), externalClient.Spin(), Task.Delay(10));
+            });
+            
+            Assert.Null(exception);
         }
 
         [Fact]
         public async Task TestManyMessages()
         {
-            const int MESSAGE_COUNT = 16384;
+            const int messageCount = 16384;
 
-            //setup server
-            var listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 16385);
-            listener.Start();
-
-            //send a message
-            var externalClient = ConnectedClient.Connect((a, b) => Task.CompletedTask, "localhost", 16385, MESSAGE_COUNT*2);
-            for(var i=0;i<MESSAGE_COUNT;++i){
-                var message = new byte[4];
-                BinaryPrimitives.WriteInt32LittleEndian(message, i);
-                externalClient.SendMessage(message);
-            }
-
-            //setup recieving
-            var wasRecieved = new bool[MESSAGE_COUNT]; //we need to just do a bool since the messages are allowed to be re-ordered
-            var client = listener.AcceptTcpClient();
-            var internalClient = ConnectedClient.Adopt((client, message) =>
+            var exception = await Record.ExceptionAsync(async () =>
             {
-                var id = BinaryPrimitives.ReadInt32LittleEndian(message);
-                wasRecieved[id] = true;
-                return Task.CompletedTask;
-            },
-            client, MESSAGE_COUNT*2);
-            
-            //let the clients do their thing for an absurdly long period of time
-            await Task.WhenAny(internalClient.Spin(), externalClient.Spin(), Task.Delay(1000));
+                //setup server
+                var listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 16385);
+                listener.Start();
 
-            for(var i=0;i<MESSAGE_COUNT;++i){
-                Assert.True(wasRecieved[i]);
-            }
+                //send a message
+                var externalClient =
+                    ConnectedClient.Connect(new EmptyHandler(), "localhost", 16385, messageCount * 2);
+
+                for (var i = 0; i < messageCount; ++i)
+                {
+                    var message = new byte[4];
+                    BinaryPrimitives.WriteInt32LittleEndian(message, i);
+                    externalClient.SendMessage(message);
+                }
+
+                //setup receiving
+                var client = await listener.AcceptTcpClientAsync();
+                var internalClient =
+                    ConnectedClient.Adopt(new TestManyMessagesInternalClientHandler(), client, messageCount * 2);
+
+                //let the clients do their thing for an absurdly long period of time
+                await Task.WhenAny(internalClient.Spin(), externalClient.Spin(), Task.Delay(1000));
+            });
+
+            Assert.Null(exception);
         }
-
     }
 }
