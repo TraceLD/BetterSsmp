@@ -5,7 +5,7 @@ namespace Ssmp
 {
     public static class NetworkStreamExtensions
     {
-        public static async Task ReadNBytes(this NetworkStream ns, int n, byte[] buffer)
+        public static async Task<int> ReadNBytes(this NetworkStream ns, int n, byte[] buffer)
         {
             var index = 0;
 
@@ -20,6 +20,8 @@ namespace Ssmp
 
                 index += bytes;
             }
+
+            return index;
         }
     }
 }
