@@ -12,7 +12,7 @@ namespace Ssmp
     {
         private readonly Handler _handler;
         private readonly int _messageQueueLimit;
-        private readonly List<Task> _tasks = new List<Task>();
+        private readonly List<Task> _tasks = new();
         private readonly TcpListener _listener;
 
         private volatile ImmutableList<ConnectedClient> _connectedClients = ImmutableList<ConnectedClient>.Empty;
