@@ -7,7 +7,11 @@ using Microsoft.Extensions.Options;
 
 namespace Ssmp
 {
-    public class CentralServerService
+    public interface ICentralServerService
+    {
+    }
+    
+    public class CentralServerService : ICentralServerService
     {
         private readonly int _messageQueueLimit;
         private readonly List<Task> _tasks = new();
