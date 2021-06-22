@@ -3,25 +3,28 @@ using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 
 namespace Ssmp
 {
     public class ConnectedClient : IDisposable
     {
+        private readonly ILogger<ConnectedClient> _logger;
         private readonly TcpClient _tcpClient;
         private readonly NetworkStream _stream;
         private readonly ISsmpHandler _handler;
         private readonly ChannelWriter<byte[]> _writer;
         private readonly ChannelReader<byte[]> _reader;
 
-        public static ConnectedClient Connect(ISsmpHandler handler, string ip, int port, int messageQueueLimit) => 
-            new(handler, new TcpClient(ip, port), messageQueueLimit);
+        public static ConnectedClient Connect(ILoggerFactory loggerFactory, ISsmpHandler handler, string ip, int port, int messageQueueLimit) => 
+            new(loggerFactory, handler, new TcpClient(ip, port), messageQueueLimit);
 
-        public static ConnectedClient Adopt(ISsmpHandler handler, TcpClient tcpClient, int messageQueueLimit) => 
-            new(handler, tcpClient, messageQueueLimit);
+        public static ConnectedClient Adopt(ILoggerFactory loggerFactory, ISsmpHandler handler, TcpClient tcpClient, int messageQueueLimit) => 
+            new(loggerFactory, handler, tcpClient, messageQueueLimit);
 
-        private ConnectedClient(ISsmpHandler handler, TcpClient tcpClient, int messageQueueLimit)
+        private ConnectedClient(ILoggerFactory loggerFactory, ISsmpHandler handler, TcpClient tcpClient, int messageQueueLimit)
         {
+            _logger = loggerFactory.CreateLogger<ConnectedClient>();
             _tcpClient = tcpClient;
             _handler = handler;
             _stream = _tcpClient.GetStream();
@@ -78,6 +81,7 @@ namespace Ssmp
                 //return if error, should automatically close the connection;
                 if (readLengthBytes != lengthBuffer.Length)
                 {
+                    _logger.LogWarning("Received EOL while reading length bytes.");
                     return;
                 }
                 
@@ -90,11 +94,22 @@ namespace Ssmp
                 //return if error, should automatically close the connection;
                 if (readBytes != buffer.Length)
                 {
+                    _logger.LogWarning("Received EOL while reading message content bytes.");
                     return;
                 }
 
                 //handle message
-                await _handler.Handle(this, buffer);
+                //rationale for try/catch: error in the handler should not bring down the entire hosted service;
+                //it is however better to catch it here so we don't catch everything in the hosted service
+                //and end up in an invalid state that can't be recovered from causing undefined behaviour;
+                try
+                {
+                    await _handler.Handle(this, buffer);
+                }
+                catch(Exception e)
+                {
+                    _logger.LogError(e, "An error has occurred in the message handler.");
+                }
             }
         }
     }
