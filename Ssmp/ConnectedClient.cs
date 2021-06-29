@@ -81,7 +81,9 @@ namespace Ssmp
                 //return if error, should automatically close the connection;
                 if (readLengthBytes != lengthBuffer.Length)
                 {
-                    _logger.LogWarning("Received EOL while reading length bytes.");
+                    _logger.LogError(
+                        "Received EOL while reading the message length. The connection will be treated as closed (most often this error results from the client disconnecting due to a network error/client dying while sending a message)."
+                    );
                     return;
                 }
                 
@@ -94,7 +96,9 @@ namespace Ssmp
                 //return if error, should automatically close the connection;
                 if (readBytes != buffer.Length)
                 {
-                    _logger.LogWarning("Received EOL while reading message content bytes.");
+                    _logger.LogError(
+                        "Received EOL while reading message content bytes. The connection will be treated as closed (most often this error results from the client disconnecting due to a network error/client dying while sending a message)."
+                    );
                     return;
                 }
 
