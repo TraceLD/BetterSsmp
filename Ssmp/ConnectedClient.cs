@@ -58,12 +58,6 @@ namespace Ssmp
         public async void SendMessage(byte[] message) => 
             await _writer.WriteAsync(message);
 
-        public void Dispose()
-        {
-            _stream?.Dispose();
-            _tcpClient?.Dispose();
-        }
-
         private async Task SendPendingMessages()
         {
             var lengthBuffer = new byte[4];
@@ -134,6 +128,12 @@ namespace Ssmp
                     );
                 }
             }
+        }
+        
+        public void Dispose()
+        {
+            _stream?.Dispose();
+            _tcpClient?.Dispose();
         }
     }
 }
