@@ -30,10 +30,5 @@ namespace Ssmp
             
             _logger.LogInformation("Stopped Ssmp.");
         }
-
-        public async Task LaunchForUnitTesting(CancellationToken token)
-        {
-            await ExecuteAsync(token);
-        }
     }
 }
