@@ -42,9 +42,11 @@ namespace Ssmp
             _writer = sendQueue.Writer;
             _reader = sendQueue.Reader;
 
-            _clientIp = _tcpClient.Client.RemoteEndPoint is IPEndPoint remoteIpEndPoint
-                ? $"{remoteIpEndPoint.Address}:{remoteIpEndPoint.Port}"
-                : "Unknown";
+            _clientIp = _tcpClient.Client.RemoteEndPoint switch
+            {
+                IPEndPoint ep => $"{ep.Address}:{ep.Port}",
+                _ => "Unknown"
+            };
         }
 
         public async Task<ConnectedClient> Spin()
