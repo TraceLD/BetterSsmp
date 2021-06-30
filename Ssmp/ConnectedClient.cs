@@ -1,9 +1,11 @@
 using System.Buffers.Binary;
 using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
+using Ssmp.Extensions;
 
 namespace Ssmp
 {
@@ -15,6 +17,7 @@ namespace Ssmp
         private readonly ISsmpHandler _handler;
         private readonly ChannelWriter<byte[]> _writer;
         private readonly ChannelReader<byte[]> _reader;
+        private readonly string _clientIp;
 
         public static ConnectedClient Connect(ILoggerFactory loggerFactory, ISsmpHandler handler, string ip, int port, int messageQueueLimit) => 
             new(loggerFactory, handler, new TcpClient(ip, port), messageQueueLimit);
@@ -26,9 +29,9 @@ namespace Ssmp
         {
             _logger = loggerFactory.CreateLogger<ConnectedClient>();
             _tcpClient = tcpClient;
-            _handler = handler;
             _stream = _tcpClient.GetStream();
-            
+            _handler = handler;
+
             var sendQueue = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(messageQueueLimit)
             {
                 AllowSynchronousContinuations = false,
@@ -38,6 +41,10 @@ namespace Ssmp
             
             _writer = sendQueue.Writer;
             _reader = sendQueue.Reader;
+
+            _clientIp = _tcpClient.Client.RemoteEndPoint is IPEndPoint remoteIpEndPoint
+                ? $"{remoteIpEndPoint.Address}:{remoteIpEndPoint.Port}"
+                : "Unknown";
         }
 
         public async Task<ConnectedClient> Spin()
@@ -82,7 +89,8 @@ namespace Ssmp
                 if (readLengthBytes != lengthBuffer.Length)
                 {
                     _logger.LogError(
-                        "Received EOL while reading the message length. The connection will be treated as closed (most often this error results from the client disconnecting due to a network error/client dying while sending a message)."
+                        "Received EOL from client {clientIp} while reading the message length. The connection will be treated as closed (most often this error results from the client disconnecting due to a network error/client dying while sending a message).",
+                        _clientIp
                     );
                     return;
                 }
@@ -97,7 +105,8 @@ namespace Ssmp
                 if (readBytes != buffer.Length)
                 {
                     _logger.LogError(
-                        "Received EOL while reading message content bytes. The connection will be treated as closed (most often this error results from the client disconnecting due to a network error/client dying while sending a message)."
+                        "Received EOL from client {clientIp} while reading message content bytes. The connection will be treated as closed (most often this error results from the client disconnecting due to a network error/client dying while sending a message).",
+                        _clientIp
                     );
                     return;
                 }
@@ -108,11 +117,19 @@ namespace Ssmp
                 //and end up in an invalid state that can't be recovered from causing undefined behaviour;
                 try
                 {
+                    _logger.LogDebug("Started handling an incoming message from client: {clientIp}.", _clientIp);
+                    
                     await _handler.Handle(this, buffer);
+                    
+                    _logger.LogDebug("Finished handling an incoming message from client: {clientIp}.", _clientIp);
                 }
                 catch(Exception e)
                 {
-                    _logger.LogError(e, "An error has occurred in the message handler.");
+                    _logger.LogError(
+                        e,
+                        "An error has occurred in the message handler while handling a message sent from client: {clientIp}.",
+                        _clientIp
+                    );
                 }
             }
         }
