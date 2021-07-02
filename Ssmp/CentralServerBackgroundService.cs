@@ -1,29 +1,34 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Ssmp
 {
     public class CentralServerBackgroundService : BackgroundService
     {
-        private readonly CentralServerService _centralServerService;
+        private readonly ILogger<CentralServerBackgroundService> _logger;
+        private readonly ICentralServerService _centralServerService;
 
-        public CentralServerBackgroundService(CentralServerService centralServerService)
+        public CentralServerBackgroundService(
+            ILogger<CentralServerBackgroundService> logger,
+            ICentralServerService centralServerService
+        )
         {
+            _logger = logger;
             _centralServerService = centralServerService;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            _logger.LogInformation("Started Ssmp.");
+            
+            while (!ct.IsCancellationRequested)
             {
                 await _centralServerService.SpinOnce();
             }
-        }
-
-        public async Task LaunchForUnitTesting(CancellationToken token)
-        {
-            await ExecuteAsync(token);
+            
+            _logger.LogInformation("Stopped Ssmp.");
         }
     }
 }
