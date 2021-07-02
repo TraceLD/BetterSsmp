@@ -8,11 +8,11 @@ namespace Ssmp
     public class CentralServerBackgroundService : BackgroundService
     {
         private readonly ILogger<CentralServerBackgroundService> _logger;
-        private readonly CentralServerService _centralServerService;
+        private readonly ICentralServerService _centralServerService;
 
         public CentralServerBackgroundService(
             ILogger<CentralServerBackgroundService> logger,
-            CentralServerService centralServerService
+            ICentralServerService centralServerService
         )
         {
             _logger = logger;

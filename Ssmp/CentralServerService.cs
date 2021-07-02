@@ -10,6 +10,7 @@ namespace Ssmp
 {
     public interface ICentralServerService
     {
+        Task SpinOnce();
     }
     
     public class CentralServerService : ICentralServerService
@@ -40,7 +41,7 @@ namespace Ssmp
             _listener.Start();
         }
 
-        internal async Task SpinOnce()
+        public async Task SpinOnce()
         {
             _tasks.Add(_listener.AcceptTcpClientAsync());
 
