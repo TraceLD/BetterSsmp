@@ -10,6 +10,8 @@ namespace Ssmp
 {
     public interface ICentralServerService
     {
+        ImmutableList<ConnectedClient> ConnectedClients { get; }
+
         Task SpinOnce();
     }
     
