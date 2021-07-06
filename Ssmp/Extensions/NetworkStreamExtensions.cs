@@ -11,7 +11,7 @@ namespace Ssmp.Extensions
         {
             var index = 0;
 
-            while(index < buffer.Length)
+            while (index < buffer.Length)
             {
                 int bytes;
 
@@ -23,12 +23,10 @@ namespace Ssmp.Extensions
                 {
                     if (e is IOException or ObjectDisposedException)
                     {
-                        bytes = -1;
+                        break;
                     }
-                    else
-                    {
-                        throw;
-                    }
+
+                    throw;
                 }
 
                 if (bytes <= 0)

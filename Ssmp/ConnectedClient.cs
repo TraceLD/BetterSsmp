@@ -89,7 +89,8 @@ namespace Ssmp
         /// Attempts to enqueue a message to be sent.
         /// </summary>
         /// <param name="message">Message to be sent.</param>
-        public void TrySendMessage(byte[] message) =>
+        /// <returns>true if the item was enqueued; otherwise, false.</returns>
+        public bool TrySendMessage(byte[] message) =>
             _channel.Writer.TryWrite(message);
 
         private async Task SendPendingMessages()
@@ -158,12 +159,12 @@ namespace Ssmp
                 try
                 {
                     _logger.LogDebug("Started handling an incoming message from client: {clientIp}.", ClientIp);
-                    
+
                     await _handler.Handle(this, buffer);
-                    
+
                     _logger.LogDebug("Finished handling an incoming message from client: {clientIp}.", ClientIp);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     _logger.LogError(
                         e,
