@@ -4,7 +4,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <Nullable>enable</Nullable>
     <PackageId>BetterSsmp</PackageId>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Authors>TraceLD, David Johnson (john01dav@gmail.com)</Authors>
     <PackageDescription>Less buggy fork of Ssmp.</PackageDescription>
     <PackageLicenseUrl>https://raw.githubusercontent.com/TraceLD/BetterSsmp/master/LICENSE.txt</PackageLicenseUrl>
