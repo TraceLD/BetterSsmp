@@ -175,7 +175,10 @@ namespace Ssmp
             }
         }
         
-        private void StopListening()
+        /// <summary>
+        /// Exits the receive and send loops and closes the TCP connection.
+        /// </summary>
+        public void StopListening()
         {
             _channel.Writer.Complete();
             _tcpClient.Close();
